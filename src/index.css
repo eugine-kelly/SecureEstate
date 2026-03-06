@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+
+.hero-bg {
+    background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://source.unsplash.com/random/1600x900/?nairobi-skyline');
+    background-size: cover;
+    background-position: center;
+}
