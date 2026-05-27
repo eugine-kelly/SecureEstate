@@ -6,7 +6,7 @@ export const properties = [
         price: "12,500,000",
         type: "Apartment",
         verified: true,
-        image: "https://source.unsplash.com/random/600x400/?apartment",
+        image: "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&q=80&w=600",
         beds: 3,
         baths: 2,
         description: "Modern apartment with stunning city views and 24/7 security."
@@ -18,7 +18,7 @@ export const properties = [
         price: "45,000,000",
         type: "House",
         verified: true,
-        image: "https://source.unsplash.com/random/600x400/?villa",
+        image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=600",
         beds: 4,
         baths: 4,
         description: "Spacious family home with large garden and swimming pool."
@@ -30,7 +30,7 @@ export const properties = [
         price: "28,000,000",
         type: "Land",
         verified: false,
-        image: "https://source.unsplash.com/random/600x400/?land",
+        image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=600",
         beds: 0,
         baths: 0,
         description: "Prime commercial land suitable for development."
@@ -42,7 +42,7 @@ export const properties = [
         price: "8,900,000",
         type: "Apartment",
         verified: true,
-        image: "https://source.unsplash.com/random/600x400/?modern-apartment",
+        image: "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&q=80&w=600",
         beds: 2,
         baths: 2,
         description: "Cozy apartment in a prime location near amenities."
