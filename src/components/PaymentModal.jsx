@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import api from '../api/axios';
 
 export default function PaymentModal({ property, isRental, accessFee, onClose, onSuccess }) {
@@ -8,30 +8,43 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
     const [checkoutRequestId, setCheckoutRequestId] = useState(null);
     const [status, setStatus] = useState(null);
     const [error, setError] = useState('');
-
     const [pollCount, setPollCount] = useState(0);
+    const [checking, setChecking] = useState(false);
+    const intervalRef = useRef(null);
 
-    // Poll payment status every 10 seconds, max 12 times (2 minutes)
+    // Poll status every 5 seconds, max 10 times
     useEffect(() => {
-        if (!checkoutRequestId || status === 'IN_ESCROW' || status === 'FAILED') return;
-        if (pollCount >= 12) return; // Stop after 2 minutes
+        if (!checkoutRequestId || status === 'IN_ESCROW' || status === 'FAILED') {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            return;
+        }
+        if (pollCount >= 10) {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            return;
+        }
 
-        const interval = setInterval(async () => {
+        intervalRef.current = setInterval(async () => {
             try {
                 const res = await api.get(`/mpesa/status/${checkoutRequestId}`);
+                const newStatus = res.data.status;
                 setPollCount(c => c + 1);
-                if (res.data.status === 'IN_ESCROW') {
-                    setStatus('IN_ESCROW');
-                    clearInterval(interval);
-                    setTimeout(() => onSuccess && onSuccess(), 1500);
-                } else if (res.data.status === 'FAILED') {
-                    setStatus('FAILED');
-                    clearInterval(interval);
+                setStatus(newStatus);
+                if (newStatus === 'IN_ESCROW') {
+                    clearInterval(intervalRef.current);
+                    // Don't auto-close - let user click "View Agent Details"
                 }
-            } catch (err) { console.error(err); }
-        }, 10000);
-        return () => clearInterval(interval);
-    }, [checkoutRequestId, status]);
+                if (newStatus === 'FAILED') {
+                    clearInterval(intervalRef.current);
+                }
+            } catch (err) {
+                console.error('Status check error:', err);
+            }
+        }, 5000);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [checkoutRequestId, pollCount]);
 
     const validatePhone = (p) => {
         const cleaned = p.replace(/[\s\-()]/g, '');
@@ -49,7 +62,15 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
 
         setLoading(true);
         try {
-            const buyerEmail = localStorage.getItem('email') || '';
+            // Get email from JWT token
+            let buyerEmail = '';
+            try {
+                const token = localStorage.getItem('token');
+                if (token) {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    buyerEmail = payload.sub || '';
+                }
+            } catch (e) { buyerEmail = ''; }
             const res = await api.post('/mpesa/stk-push', {
                 phoneNumber: phone,
                 amount: accessFee,
@@ -60,6 +81,7 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
             if (res.data.success) {
                 setCheckoutRequestId(res.data.checkoutRequestId);
                 setStatus('PENDING');
+                setPollCount(0);
             } else {
                 setError(res.data.message || 'Payment failed. Please try again.');
             }
@@ -70,10 +92,67 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
         }
     };
 
+    const handleManualCheck = async () => {
+        if (!checkoutRequestId) return;
+        setChecking(true);
+        try {
+            const res = await api.get(`/mpesa/status/${checkoutRequestId}`);
+            const newStatus = res.data.status;
+            setStatus(newStatus);
+            // Don't auto-redirect - user clicks View Agent Details button
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setChecking(false);
+        }
+    };
+
+    // For sandbox testing — manually mark as paid
+    const handleSandboxConfirm = async () => {
+        if (!checkoutRequestId) return;
+        setChecking(true);
+        try {
+            // Simulate the callback locally
+            await api.post('/mpesa/callback/stk', JSON.stringify({
+                Body: {
+                    stkCallback: {
+                        MerchantRequestID: "sandbox-test",
+                        CheckoutRequestID: checkoutRequestId,
+                        ResultCode: 0,
+                        ResultDesc: "Success",
+                        CallbackMetadata: {
+                            Item: [
+                                { Name: "Amount", Value: accessFee },
+                                { Name: "MpesaReceiptNumber", Value: "SANDBOX" + Date.now() },
+                                { Name: "TransactionDate", Value: 20260101120000 },
+                                { Name: "PhoneNumber", Value: 254708374149 }
+                            ]
+                        }
+                    }
+                }
+            }), { headers: { 'Content-Type': 'application/json' } });
+
+            // Wait then check status - just update status, don't auto-close
+            await new Promise(r => setTimeout(r, 600));
+            const res = await api.get(`/mpesa/status/${checkoutRequestId}`);
+            setStatus(res.data.status);
+            // Don't auto-redirect - user must click View Agent Details
+        } catch (err) {
+            console.error(err);
+            try {
+                const res = await api.get(`/mpesa/status/${checkoutRequestId}`);
+                setStatus(res.data.status);
+            } catch (e2) { console.error(e2); }
+        } finally {
+            setChecking(false);
+        }
+    };
+
     const feeLabel = `KES ${Number(accessFee).toLocaleString()}`;
+    const isSandbox = true; // Set to false in production
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-6">
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
                 {/* Header */}
                 <div className="bg-emerald-600 p-6 text-white">
@@ -98,81 +177,80 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
                             <p className="text-sm font-semibold text-emerald-800 mb-2">
                                 <i className="fas fa-unlock mr-2"></i>After payment you get:
                             </p>
-                            <ul className="space-y-1.5 text-sm text-emerald-700">
+                            <ul className="space-y-1 text-sm text-emerald-700">
                                 <li><i className="fas fa-check mr-2 text-emerald-500"></i>Agent full name & phone number</li>
                                 <li><i className="fas fa-check mr-2 text-emerald-500"></i>Agent email & WhatsApp link</li>
-                                <li><i className="fas fa-check mr-2 text-emerald-500"></i>Full property description & details</li>
-                                <li><i className="fas fa-check mr-2 text-emerald-500"></i>Downloadable property brochure</li>
+                                <li><i className="fas fa-check mr-2 text-emerald-500"></i>Full property description</li>
                                 <li><i className="fas fa-check mr-2 text-emerald-500"></i>M-Pesa payment receipt</li>
                             </ul>
                         </div>
                     )}
 
-                    {/* PENDING state */}
+                    {/* PENDING */}
                     {status === 'PENDING' && (
-                        <div className="text-center py-6">
+                        <div className="text-center py-4">
                             <div className="w-16 h-16 bg-yellow-100 rounded-full mx-auto flex items-center justify-center mb-4">
                                 <i className="fas fa-mobile-alt text-yellow-500 text-2xl"></i>
                             </div>
                             <h3 className="text-lg font-bold mb-2">Check Your Phone</h3>
                             <p className="text-gray-500 text-sm mb-4">
-                                An M-Pesa prompt has been sent to <strong>{phone}</strong>.
+                                An M-Pesa prompt has been sent to <strong>{phone}</strong>.<br/>
                                 Enter your PIN to pay <strong>{feeLabel}</strong>.
                             </p>
                             <div className="flex items-center justify-center gap-2 text-emerald-600 mb-4">
                                 <i className="fas fa-spinner fa-spin"></i>
-                                <span className="text-sm">Waiting for payment confirmation...</span>
+                                <span className="text-sm">Waiting for confirmation... ({pollCount}/10)</span>
                             </div>
-                            <p className="text-xs text-gray-400 mb-4">This will auto-update once payment is confirmed</p>
-                            <button
-                                onClick={async () => {
-                                    try {
-                                        const res = await api.get(`/mpesa/status/${checkoutRequestId}`);
-                                        if (res.data.status === 'IN_ESCROW') {
-                                            setStatus('IN_ESCROW');
-                                            onSuccess && onSuccess();
-                                        } else if (res.data.status === 'FAILED') {
-                                            setStatus('FAILED');
-                                        } else {
-                                            // Still pending - show message
-                                            alert('Payment not confirmed yet. Please enter your M-Pesa PIN if you haven\'t already, then try again.');
-                                        }
-                                    } catch (e) { console.error(e); }
-                                }}
-                                className="text-sm text-emerald-600 border border-emerald-300 px-4 py-2 rounded-xl hover:bg-emerald-50"
-                            >
-                                <i className="fas fa-sync mr-1"></i> I have paid — Check status
+
+                            {/* Manual check */}
+                            <button onClick={handleManualCheck} disabled={checking}
+                                    className="w-full mb-2 border border-emerald-500 text-emerald-600 hover:bg-emerald-50 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50">
+                                {checking ? <><i className="fas fa-spinner fa-spin mr-2"></i>Checking...</> : <><i className="fas fa-sync mr-2"></i>I have paid — Check status</>}
                             </button>
+
+                            {/* Sandbox test button */}
+                            {isSandbox && (
+                                <button onClick={handleSandboxConfirm} disabled={checking}
+                                        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2.5 rounded-xl text-sm font-medium disabled:opacity-50">
+                                    <i className="fas fa-flask mr-2"></i>Sandbox: Simulate Payment Success
+                                </button>
+                            )}
+                            <p className="text-xs text-gray-400 mt-2">
+                                {isSandbox ? 'Use sandbox button to test without real M-Pesa' : 'Page auto-updates when payment is confirmed'}
+                            </p>
                         </div>
                     )}
 
-                    {/* SUCCESS state */}
+                    {/* SUCCESS */}
                     {status === 'IN_ESCROW' && (
-                        <div className="text-center py-8">
+                        <div className="text-center py-6">
                             <div className="w-16 h-16 bg-emerald-100 rounded-full mx-auto flex items-center justify-center mb-4">
                                 <i className="fas fa-unlock text-emerald-600 text-2xl"></i>
                             </div>
-                            <h3 className="text-lg font-bold text-emerald-700 mb-2">Access Unlocked!</h3>
+                            <h3 className="text-lg font-bold text-emerald-700 mb-2">Payment Confirmed!</h3>
                             <p className="text-gray-500 text-sm mb-4">
-                                Payment of <strong>{feeLabel}</strong> confirmed. Agent contacts and property details are now available.
+                                Your payment of <strong>{feeLabel}</strong> has been received.
+                                Agent details are now unlocked!
                             </p>
-                            <button onClick={() => { onSuccess && onSuccess(); onClose(); }}
-                                    className="w-full bg-emerald-600 text-white py-3 rounded-2xl font-semibold">
-                                View Agent Details →
+                            <button onClick={async () => {
+                                if (onSuccess) await onSuccess();
+                            }}
+                                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-3 rounded-2xl font-semibold text-lg">
+                                <i className="fas fa-eye mr-2"></i>View Agent Details →
                             </button>
                         </div>
                     )}
 
-                    {/* FAILED state */}
+                    {/* FAILED */}
                     {status === 'FAILED' && (
-                        <div className="text-center py-8">
+                        <div className="text-center py-6">
                             <div className="w-16 h-16 bg-red-100 rounded-full mx-auto flex items-center justify-center mb-4">
                                 <i className="fas fa-times-circle text-red-500 text-2xl"></i>
                             </div>
                             <h3 className="text-lg font-bold text-red-600 mb-2">Payment Failed</h3>
-                            <p className="text-gray-500 text-sm mb-4">The payment was cancelled or failed. Please try again.</p>
-                            <button onClick={() => setStatus(null)}
-                                    className="w-full bg-red-500 text-white py-3 rounded-2xl font-semibold">
+                            <p className="text-gray-500 text-sm mb-4">Payment was cancelled or failed. Please try again.</p>
+                            <button onClick={() => { setStatus(null); setPollCount(0); }}
+                                    className="w-full bg-red-500 hover:bg-red-600 text-white py-3 rounded-2xl font-semibold">
                                 Try Again
                             </button>
                         </div>
@@ -181,7 +259,6 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
                     {/* Payment form */}
                     {!status && (
                         <>
-                            {/* Tabs */}
                             <div className="flex bg-gray-100 rounded-2xl p-1 mb-5">
                                 <button onClick={() => setTab('stk')}
                                         className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all ${tab === 'stk' ? 'bg-white shadow text-emerald-700' : 'text-gray-500'}`}>
@@ -210,7 +287,7 @@ export default function PaymentModal({ property, isRental, accessFee, onClose, o
                                                    className="w-full border border-gray-300 rounded-2xl pl-20 pr-4 py-3.5 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
                                                    required />
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-1">Enter number registered with M-Pesa</p>
+                                        <p className="text-xs text-gray-400 mt-1">Sandbox test number: 0708374149</p>
                                     </div>
                                     <button type="submit" disabled={loading}
                                             className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2">
