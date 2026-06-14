@@ -1,11 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import PropertyCard from '../components/PropertyCard';
 import { properties } from '../data/properties';
 
 export default function Buy() {
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchParams] = useSearchParams();
+    const initialLocation = searchParams.get('location') || '';
+
+    const [searchTerm, setSearchTerm] = useState(initialLocation);
     const [priceFilter, setPriceFilter] = useState('Any');
     const [typeFilter, setTypeFilter] = useState('Any');
+
+    // Update search term if the location query param changes (e.g. clicking a different neighborhood)
+    useEffect(() => {
+        const loc = searchParams.get('location');
+        if (loc) setSearchTerm(loc);
+    }, [searchParams]);
 
     const filtered = properties.filter(p => {
         const matchesSearch =
@@ -48,10 +58,17 @@ export default function Buy() {
                     <option>Land</option>
                     <option>Commercial</option>
                 </select>
+                {searchTerm && (
+                    <button onClick={() => setSearchTerm('')}
+                            className="border border-gray-300 hover:bg-gray-50 rounded-2xl px-5 py-4 text-sm text-gray-500 flex items-center gap-2">
+                        <i className="fas fa-times"></i> Clear
+                    </button>
+                )}
             </div>
 
             <p className="text-sm text-gray-500 mb-6">
                 {filtered.length} propert{filtered.length !== 1 ? 'ies' : 'y'} found
+                {searchTerm && <span> for "<strong>{searchTerm}</strong>"</span>}
             </p>
 
             {filtered.length > 0 ? (
