@@ -21,11 +21,10 @@ const FOOTER_LINKS = {
 };
 
 const SOCIALS = [
-    { icon: 'fab fa-facebook-f', href: '#' },
-    { icon: 'fab fa-twitter', href: '#' },
-    { icon: 'fab fa-instagram', href: '#' },
-    { icon: 'fab fa-linkedin-in', href: '#' },
-    { icon: 'fab fa-whatsapp', href: '#' },
+    { icon: 'fab fa-x-twitter', href: 'https://share.google/Fssycbg9r4CVVtkWa' },
+    { icon: 'fab fa-instagram', href: 'https://www.instagram.com/eug.1ne?igsh=MXJ3ZXNvem5sZDZzZA==' },
+    { icon: 'fab fa-linkedin-in', href: 'https://www.linkedin.com/in/eugine-kelly-okongo' },
+    { icon: 'fab fa-github', href: 'https://eugine-kelly.github.io/my-portfolio/' },
 ];
 
 export default function Footer() {
@@ -46,7 +45,7 @@ export default function Footer() {
                         </p>
                         <div className="flex gap-3">
                             {SOCIALS.map((s) => (
-                                <a key={s.icon} href={s.href}
+                                <a key={s.icon} href={s.href} target="_blank" rel="noreferrer"
                                    className="w-9 h-9 bg-gray-800 hover:bg-emerald-600 rounded-xl flex items-center justify-center text-gray-400 hover:text-white transition-all">
                                     <i className={`${s.icon} text-sm`}></i>
                                 </a>
@@ -89,15 +88,15 @@ export default function Footer() {
                             <p className="text-xs">+254 700 000 000</p>
                         </div>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <a href="mailto:kellyeugine583@gmail.com" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center text-emerald-500">
                             <i className="fas fa-envelope"></i>
                         </div>
                         <div>
                             <p className="text-white text-sm font-medium">Email</p>
-                            <p className="text-xs">hello@secureestate.co.ke</p>
+                            <p className="text-xs">kellyeugine583@gmail.com</p>
                         </div>
-                    </div>
+                    </a>
                 </div>
             </div>
 
@@ -107,9 +106,6 @@ export default function Footer() {
                     <div className="flex items-center gap-6 text-xs">
                         <div className="flex items-center gap-2 text-emerald-500">
                             <i className="fas fa-shield-alt"></i><span>Bank-Grade Security</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-emerald-500">
-                            <i className="fas fa-check-circle"></i><span>Ardhisasa Verified</span>
                         </div>
                         <div className="flex items-center gap-2 text-emerald-500">
                             <i className="fas fa-lock"></i><span>Kenya Data Protection Act</span>
