@@ -17,10 +17,10 @@ const slides = [
         image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=2000",
     },
     {
-        title: "Prime Plots & Commercial Land",
+        title: "Spacious Family Homes",
         subtitle: "Title Checks • Fraud Detection • Secure Payments",
         bgColor: "#7c2d12",
-        image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=2000",
+        image: "https://images.unsplash.com/photo-1576941089067-2de3c901e126?auto=format&fit=crop&q=80&w=2000",
     },
 ];
 
