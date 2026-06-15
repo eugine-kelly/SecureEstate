@@ -1,4 +1,4 @@
-
+// src/components/Hero.jsx
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,16 +11,16 @@ const slides = [
         image: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=2000",
     },
     {
-        title: "Verified Luxury in Karen & Westlands",
+        title: "Luxury Homes",
         subtitle: "End-to-End Encrypted Transactions • Bank-Grade Security",
         bgColor: "#064e3b",
-        image: "https://images.unsplash.com/photo-1583608205776-b77a1e7e954e?auto=format&fit=crop&q=80&w=2000",
+        image: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=2000",
     },
     {
         title: "Prime Plots & Commercial Land",
         subtitle: "Title Checks • Fraud Detection • Secure Payments",
         bgColor: "#7c2d12",
-        image: "https://images.unsplash.com/photo-1581351726320-0b570a5d8e6f?auto=format&fit=crop&q=80&w=2000",
+        image: "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=2000",
     },
 ];
 
@@ -63,19 +63,21 @@ export default function Hero() {
                 />
             </AnimatePresence>
 
-            {/* Animated background image */}
+            {/* Animated background image — blurred */}
             <AnimatePresence mode="wait">
                 <motion.div
                     key={`img-${currentIndex}`}
                     className="absolute inset-0"
                     initial={{ opacity: 0, scale: 1.08 }}
-                    animate={{ opacity: 0.3, scale: 1 }}
+                    animate={{ opacity: 0.45, scale: 1 }}
                     exit={{ opacity: 0, scale: 1.05 }}
                     transition={{ duration: 1.8, ease: "easeInOut" }}
                     style={{
                         backgroundImage: `url(${current.image})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
+                        filter: "blur(4px)",
+                        transform: "scale(1.05)", // prevent blurred edges showing
                     }}
                 />
             </AnimatePresence>
@@ -197,58 +199,3 @@ export default function Hero() {
         </section>
     );
 }
-
-// export default function Hero() {
-//     return (
-//         <section className="relative h-screen flex items-center text-white hero-bg">
-//             <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/60" />
-//
-//             <div className="relative max-w-5xl mx-auto px-6 text-center z-10">
-//                 <h1 className="text-6xl font-bold mb-4">Find Your Secure Home in Kenya</h1>
-//                 <p className="text-2xl mb-10">Verified properties • M-Pesa payments • Ardhisasa title checks • AI fraud protection</p>
-//
-//                 {/* Search Bar */}
-//                 <div className="bg-white rounded-3xl p-3 shadow-2xl max-w-4xl mx-auto">
-//                     <div className="flex bg-gray-100 rounded-2xl p-1">
-//                         <button className="flex-1 py-4 rounded-2xl font-semibold bg-white shadow text-emerald-700">Buy</button>
-//                         <button className="flex-1 py-4 rounded-2xl font-semibold text-gray-600">Rent</button>
-//                         <button className="flex-1 py-4 rounded-2xl font-semibold text-gray-600">Sell</button>
-//                     </div>
-//
-//                     <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 px-4">
-//                         <input
-//                             type="text"
-//                             placeholder="Nairobi, Westlands, Karen..."
-//                             className="border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl px-6 py-4 text-gray-900 w-full"
-//                         />
-//                         <select className="border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl px-6 py-4 text-gray-900">
-//                             <option>Any Price (KES)</option>
-//                             <option>Under 5M</option>
-//                             <option>5M - 15M</option>
-//                             <option>Above 15M</option>
-//                         </select>
-//                         <select className="border-0 focus:ring-2 focus:ring-emerald-500 rounded-2xl px-6 py-4 text-gray-900">
-//                             <option>Property Type</option>
-//                             <option>Apartment</option>
-//                             <option>House</option>
-//                             <option>Land</option>
-//                         </select>
-//                         <button
-//                             onClick={() => alert("Searching secure listings...")}
-//                             className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-2xl px-10 py-4 flex items-center justify-center gap-3"
-//                         >
-//                             <i className="fas fa-search"></i>
-//                             Search Securely
-//                         </button>
-//                     </div>
-//                 </div>
-//
-//                 <div className="mt-8 flex justify-center gap-8 text-sm">
-//                     <div className="flex items-center gap-2"><i className="fas fa-check text-emerald-400"></i> Ardhisasa Verified</div>
-//                     <div className="flex items-center gap-2"><i className="fas fa-check text-emerald-400"></i> M-Pesa Secure</div>
-//                     <div className="flex items-center gap-2"><i className="fas fa-check text-emerald-400"></i> AI Fraud Protection</div>
-//                 </div>
-//             </div>
-//         </section>
-//     );
-// }
